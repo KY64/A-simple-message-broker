@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -63,9 +64,21 @@ func hmset(c redis.Conn, hash string, Class interface{}) error {
 	return err
 }
 
-func expire(c redis.Conn, key string, time string) error {
-	_, err := c.Do("EXPIRE", key, time)
-	return err
+func expire(c redis.Conn, key string, expiredTime string, done chan bool) {
+	t, _ := strconv.ParseInt(expiredTime, 0, 64)
+	for {
+		select {
+		case <-time.After(time.Duration(t) * time.Second):
+			_, err := c.Do("EXPIRE", key, expiredTime)
+			if DBStatus > 0 {
+				done <- true
+				break
+			}
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}
+	}
 }
 
 func subscribe(c redis.Conn, channel string) (string, error) {

@@ -2,14 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 )
-
-var LoginSession = make(chan string)
-var RegisterSession = make(chan string)
 
 func registerHandler(w http.ResponseWriter, req *http.Request) {
 	pool := newPool()
@@ -62,21 +58,15 @@ func loginHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if DBStatus < 1 {
-		fmt.Println("DBStatus", DBStatus)
-	}
-
 	err = hmset(conn, string(User.Username), User)
 
 	if err != nil {
 		log.Fatalln(err)
 	}
+	isDone := make(chan bool)
+	go expire(conn, User.Username, "2", isDone)
 
-	err = expire(conn, string(User.Username), "70")
-
-	if err != nil {
-		log.Fatalln(err)
-	}
+	<-isDone
 
 	w.Write([]byte("200"))
 }

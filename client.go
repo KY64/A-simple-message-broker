@@ -22,7 +22,7 @@ func client() {
 	c, err := net.Dial("tcp", arguments[2])
 
 	if err != nil {
-		log.Println(err)
+		// log.Println(err)
 		DBStatus = 0
 		go client()
 		return
@@ -39,14 +39,15 @@ func client() {
 			fmt.Println("")
 
 		default:
-			data, error := bufio.NewReader(c).ReadString('\n')
+			// data, error := bufio.NewReader(c).ReadString('\n')
+			_, error := bufio.NewReader(c).ReadString('\n')
 			if error != nil {
-				log.Println(err)
+				// log.Println(err)
 				DBStatus = 0
 				go client()
 				return
 			}
-			log.Println(data)
+			// log.Println(data)
 		}
 	}
 }

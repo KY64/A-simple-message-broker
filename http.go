@@ -19,6 +19,7 @@ func main() {
 	http.HandleFunc("/account/register", registerHandler)
 	http.HandleFunc("/account/auth", loginHandler)
 	http.HandleFunc("/api/stream/1", streamHandler)
+
 	PORT := ":" + arg[1]
 	log.Fatal(http.ListenAndServe(PORT, nil))
 }
