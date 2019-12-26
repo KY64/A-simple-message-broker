@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -59,6 +60,10 @@ func loginHandler(w http.ResponseWriter, req *http.Request) {
 	if User.Username == "" || User.Password == "" {
 		w.WriteHeader(400)
 		return
+	}
+
+	if DBStatus < 1 {
+		fmt.Println("DBStatus", DBStatus)
 	}
 
 	err = hmset(conn, string(User.Username), User)
