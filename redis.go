@@ -81,22 +81,28 @@ func expire(c redis.Conn, key string, expiredTime string, done chan bool) {
 	}
 }
 
-func subscribe(c redis.Conn, channel string, data chan string) {
+func publish(c redis.Conn, channel, data string) (interface{}, error) {
+	val, err := c.Do("PUBLISH", channel, data)
+	return val, err
+}
+
+func subscribe(c redis.Conn, channel string, data chan []byte) {
 	psc := redis.PubSubConn{c}
+	go func() {
+		psc.Subscribe(channel)
 
-	psc.Subscribe(channel)
+		err := c.Err()
 
-	err := c.Err()
-
-	for err == nil {
-		switch v := psc.Receive().(type) {
-		case redis.Message:
-			data <- string(v.Data)
-		case error:
-			log.Println(v.Error())
+		for err == nil {
+			switch v := psc.Receive().(type) {
+			case redis.Message:
+				data <- v.Data
+			case error:
+				log.Println(v.Error())
+			}
 		}
-	}
 
-	psc.Unsubscribe()
+		psc.Unsubscribe()
+	}()
 	c.Close()
 }
