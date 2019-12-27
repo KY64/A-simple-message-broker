@@ -72,7 +72,7 @@ func expire(c redis.Conn, key string, expiredTime string, done chan bool) {
 			_, err := c.Do("EXPIRE", key, expiredTime)
 			if DBStatus > 0 {
 				done <- true
-				break
+				return
 			}
 			if err != nil {
 				log.Fatalln(err)
@@ -81,9 +81,7 @@ func expire(c redis.Conn, key string, expiredTime string, done chan bool) {
 	}
 }
 
-func subscribe(c redis.Conn, channel string) (string, error) {
-	var data string
-
+func subscribe(c redis.Conn, channel string, data chan string) {
 	psc := redis.PubSubConn{c}
 
 	psc.Subscribe(channel)
@@ -93,15 +91,12 @@ func subscribe(c redis.Conn, channel string) (string, error) {
 	for err == nil {
 		switch v := psc.Receive().(type) {
 		case redis.Message:
-			data = string(v.Data)
+			data <- string(v.Data)
 		case error:
-			fmt.Println(v.Error())
-			return data, err
+			log.Println(v.Error())
 		}
 	}
 
 	psc.Unsubscribe()
 	c.Close()
-
-	return data, err
 }

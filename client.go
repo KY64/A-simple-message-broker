@@ -10,6 +10,7 @@ import (
 )
 
 var DBStatus int
+var Respond, Request string
 
 func client() {
 	arguments := os.Args
@@ -22,7 +23,7 @@ func client() {
 	c, err := net.Dial("tcp", arguments[2])
 
 	if err != nil {
-		// log.Println(err)
+		log.Println(err)
 		DBStatus = 0
 		go client()
 		return
@@ -35,17 +36,32 @@ func client() {
 
 	for {
 		select {
-		case <-time.After(1 * time.Second):
+		case <-time.After(60 * time.Millisecond):
 			fmt.Println("")
 
 		default:
-			// data, error := bufio.NewReader(c).ReadString('\n')
-			_, error := bufio.NewReader(c).ReadString('\n')
-			if error != nil {
-				// log.Println(err)
-				DBStatus = 0
-				go client()
-				return
+			if len(Request) > 0 {
+				data, error := bufio.NewReader(c).ReadString('\n')
+				log.Println(Request)
+
+				if error != nil {
+					log.Println(err)
+					DBStatus = 0
+					go client()
+					return
+				}
+
+				Respond = data
+				Request = ""
+			} else {
+				_, err = bufio.NewReader(c).ReadString('\n')
+
+				if err != nil {
+					log.Println(err)
+					DBStatus = 0
+					go client()
+					return
+				}
 			}
 			// log.Println(data)
 		}
