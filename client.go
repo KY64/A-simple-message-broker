@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"time"
+	"unicode/utf8"
 )
 
 var DBStatus int
@@ -37,7 +38,7 @@ func client() {
 	for {
 		select {
 		case <-time.After(60 * time.Millisecond):
-			fmt.Println("")
+			fmt.Println(utf8.FullRuneInString(`{"nama pasien" : "tedi", "umur" : "20", "nama wali" : "tejo", "Alamat" : "TMB nomor 68"}`))
 
 		default:
 			if len(Request) > 0 {

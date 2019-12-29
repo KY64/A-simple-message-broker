@@ -94,57 +94,57 @@ func streamHandler(w http.ResponseWriter, req *http.Request) {
 	conn := pool.Get()
 	defer conn.Close()
 
-	if req.Method == http.MethodGet {
-		Request = req.RequestURI
-		if len(Request) < 12 {
-			return
-		}
-		Request = Request[12:]
-		query := strings.Split(Request, "=")
+	Request = req.URL.RawQuery
+	query := strings.Split(Request, "=")
 
-		log.Println(Request)
+	var upgrader = websocket.Upgrader{} // use default options
 
-		var upgrader = websocket.Upgrader{} // use default options
+	c, err := upgrader.Upgrade(w, req, nil)
+	if err != nil {
+		log.Print("upgrade:", err)
+		return
+	}
+	defer c.Close()
 
-		c, err := upgrader.Upgrade(w, req, nil)
-		if err != nil {
-			log.Print("upgrade:", err)
-			return
-		}
-		defer c.Close()
+	var m = make(chan int)
+	var msg = make(chan []byte)
 
-		var m = make(chan int)
-		var msg = make(chan []byte)
-
-		go func() {
-			for {
-				mt, message, err := c.ReadMessage()
-				if err != nil {
-					log.Println("read:", err)
-					break
-				}
-				m <- mt
-				msg <- message
-				if query[0] == "publish" {
-					publish(conn, "kamar="+query[1], string(message))
-				}
-				log.Printf("recv: %s mt: %d", message, mt)
-			}
-		}()
-
+	go func() {
 		for {
-			mt := <-m
-			if query[0] == "kamar" {
-				<-msg
-				subscribe(conn, Request, msg)
-			}
-			err = c.WriteMessage(mt, <-msg)
+			mt, message, err := c.ReadMessage()
 			if err != nil {
-				log.Println("write:", err)
-				c.Close()
+				log.Println("read:", err)
 				break
 			}
+			m <- mt
+			msg <- message
+			if query[0] == "publish" {
+				val, err := publish(conn, "kamar="+query[1], string(message))
+				if err != nil {
+					log.Println(err)
+				}
+				if val.(int64) < 1 {
+					log.Println("Lonely")
+				}
+				log.Println("val is", val)
+			}
+			log.Printf("recv: %s mt: %d", message, mt)
 		}
+	}()
 
+	for {
+		mt := <-m
+		if query[0] == "kamar" {
+			<-msg
+			go subscribe(conn, Request, msg)
+		}
+		err = c.WriteMessage(mt, <-msg)
+		log.Println("yuuhuu")
+		if err != nil {
+			log.Println("write:", err)
+			c.Close()
+			break
+		}
 	}
+
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,11 +15,15 @@ func main() {
 		return
 	}
 
+	flag.Parse()
+	go h.run()
 	go client()
 
 	http.HandleFunc("/account/register", registerHandler)
 	http.HandleFunc("/account/auth", loginHandler)
-	go http.HandleFunc("/api/stream", streamHandler)
+	go http.HandleFunc("/api/stream", func(w http.ResponseWriter, r *http.Request) {
+		serveWs(w, r)
+	})
 
 	PORT := ":" + arg[1]
 	log.Fatal(http.ListenAndServe(PORT, nil))
